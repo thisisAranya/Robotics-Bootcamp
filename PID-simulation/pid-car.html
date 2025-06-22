@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Advanced PID Controller Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #1a1b26;
+      --surface-color: #24283b;
+      --text-color: #c0caf5;
+      --primary-color: #bb9af7;
+      --green: #9ece6a;
+      --red: #f7768e;
+      --orange: #ff9e64;
+      --blue: #7aa2f7;
+      --border-color: #414868;
+      --road-color: #32384a;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-color);
+      margin: 0;
+      padding: 24px;
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      height: 100vh;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 24px;
+      width: 100%;
+      max-width: 1600px;
+    }
+
+    #simulation-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-grow: 1;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 16px 0;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+    h1 .icon { font-size: 1.5em; vertical-align: middle; }
+
+    canvas#roadCanvas {
+      background: var(--road-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      display: block;
+      cursor: crosshair;
+    }
+    
+    #info-plots-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    canvas#graphCanvas {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      flex-grow: 1;
+    }
+    
+    .data-display {
+      background: var(--surface-color);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 14px;
+      min-width: 220px;
+      border: 1px solid var(--border-color);
+    }
+    .data-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .data-item span:first-child {
+      font-weight: 500;
+      color: #a9b1d6;
+    }
+    .data-item span:last-child {
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 15px;
+      background: #1e202e;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 380px;
+      flex-shrink: 0;
+    }
+    
+    .control-card {
+        background: var(--surface-color);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .control-card h2 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+
+    .slider-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    output {
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--border-color);
+      border-radius: 3px;
+      outline: none;
+      transition: opacity .2s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--primary-color);
+      cursor: pointer;
+      border-radius: 50%;
+      border: 3px solid var(--bg-color);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      background: var(--primary-color);
+      cursor: pointer;
+      border-radius: 50%;
+      border: 3px solid var(--bg-color);
+    }
+
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      color: var(--bg-color);
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    #startBtn { background-color: var(--green); }
+    #pauseBtn { background-color: var(--orange); }
+    #resetBtn { background-color: var(--red); }
+    #startBtn:hover { background-color: #b9f27c; }
+    #pauseBtn:hover { background-color: #ffb882; }
+    #resetBtn:hover { background-color: #ff93a3; }
+    
+    .presets-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .presets-group button {
+        background-color: var(--blue);
+        flex-grow: 1;
+    }
+    .presets-group button:hover {
+        background-color: #92b7ff;
+    }
+
+    .help-card p {
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0 0 10px 0;
+    }
+    .help-card strong {
+        color: var(--primary-color);
+    }
+    .help-card ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+    .help-card li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-container">
+
+  <div id="simulation-container">
+    <h1><span class="icon">🚗</span> Advanced PID Controller Simulation</h1>
+    <canvas id="roadCanvas"></canvas>
+    <div id="info-plots-container">
+      <div class="data-display">
+          <div class="data-item"><span>Cross-Track Error</span><span id="errorVal">0.00</span></div>
+          <div class="data-item" style="color: var(--green)"><span>P Term (Proportional)</span><span id="pVal">0.00</span></div>
+          <div class="data-item" style="color: var(--orange)"><span>I Term (Integral)</span><span id="iVal">0.00</span></div>
+          <div class="data-item" style="color: var(--red)"><span>D Term (Derivative)</span><span id="dVal">0.00</span></div>
+          <div class="data-item" style="border-top: 1px solid var(--border-color); padding-top: 12px;"><span>Total Correction</span><span id="corrVal">0.00</span></div>
+      </div>
+      <canvas id="graphCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="control-card">
+        <h2>Simulation Controls</h2>
+        <div class="slider-group">
+            <label for="speedSlider">Car Speed: <output id="speedVal">4</output></label>
+            <input type="range" id="speedSlider" min="1" max="10" step="0.5" value="4" />
+        </div>
+        <div class="button-group" style="grid-template-columns: 1fr 1fr 1fr;">
+          <button id="startBtn">▶ Start</button>
+          <button id="pauseBtn">❚❚ Pause</button>
+          <button id="resetBtn">↻ Reset</button>
+        </div>
+    </div>
+  
+    <div class="control-card">
+      <h2>PID Tuning (K<sub>p</sub>, K<sub>i</sub>, K<sub>d</sub>)</h2>
+      <div class="slider-group">
+        <label>K<sub>p</sub> (Proportional): <output id="kpVal">0.1</output></label>
+        <input type="range" id="kpSlider" min="0" max="1" step="0.01" value="0.1" />
+      </div>
+      <div class="slider-group">
+        <label>K<sub>i</sub> (Integral): <output id="kiVal">0.008</output></label>
+        <input type="range" id="kiSlider" min="0" max="0.1" step="0.001" value="0.008" />
+      </div>
+      <div class="slider-group">
+        <label>K<sub>d</sub> (Derivative): <output id="kdVal">0.8</output></label>
+        <input type="range" id="kdSlider" min="0" max="2" step="0.05" value="0.8" />
+      </div>
+    </div>
+
+    <div class="control-card">
+        <h2>Tuning Presets</h2>
+        <div class="presets-group">
+            <button id="presetP">P-Only</button>
+            <button id="presetPI">PI</button>
+            <button id="presetGood">Good</button>
+            <button id="presetOver">Overdamped</button>
+            <button id="presetUnder">Underdamped</button>
+        </div>
+    </div>
+    
+    <div class="control-card help-card">
+        <h2>How It Works</h2>
+        <p>Click the road to create a "wind" disturbance.</p>
+        <ul>
+            <li><strong>K<sub>p</sub> (Proportional)</strong>: Reacts to the <strong>current error</strong>. A high Kp makes the car react aggressively, but can lead to overshooting and oscillations.</li>
+            <li><strong>K<sub>i</sub> (Integral)</strong>: Accumulates <strong>past errors</strong>. It eliminates steady-state error, ensuring the car returns exactly to center over time. Too high, and it causes massive overshoots (wind-up).</li>
+            <li><strong>K<sub>d</sub> (Derivative)</strong>: Predicts <strong>future error</strong> by looking at the rate of change. It dampens oscillations and reduces overshoot, acting like a brake as the car approaches the center line.</li>
+        </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- DOM Elements & Global State ---
+  const roadCanvas = document.getElementById("roadCanvas");
+  const roadCtx = roadCanvas.getContext("2d");
+  const graphCanvas = document.getElementById("graphCanvas");
+  const graphCtx = graphCanvas.getContext("2d");
+
+  // Sliders, Outputs, and Data Displays
+  const sliders = { kp: document.getElementById("kpSlider"), ki: document.getElementById("kiSlider"), kd: document.getElementById("kdSlider"), speed: document.getElementById("speedSlider") };
+  const outputs = { kp: document.getElementById("kpVal"), ki: document.getElementById("kiVal"), kd: document.getElementById("kdVal"), speed: document.getElementById("speedVal") };
+  const dataDisplays = { error: document.getElementById('errorVal'), p: document.getElementById('pVal'), i: document.getElementById('iVal'), d: document.getElementById('dVal'), correction: document.getElementById('corrVal') };
+  const buttons = { start: document.getElementById("startBtn"), pause: document.getElementById("pauseBtn"), reset: document.getElementById("resetBtn"), presetP: document.getElementById("presetP"), presetPI: document.getElementById("presetPI"), presetGood: document.getElementById("presetGood"), presetOver: document.getElementById("presetOver"), presetUnder: document.getElementById("presetUnder") };
+
+  // --- Color Palette (FIXED) ---
+  // Read CSS variables once and store them for canvas use
+  const computedStyles = getComputedStyle(document.documentElement);
+  const colors = {
+      primary: computedStyles.getPropertyValue('--primary-color').trim(),
+      green: computedStyles.getPropertyValue('--green').trim(),
+      red: computedStyles.getPropertyValue('--red').trim(),
+      orange: computedStyles.getPropertyValue('--orange').trim(),
+      border: computedStyles.getPropertyValue('--border-color').trim(),
+      surface: computedStyles.getPropertyValue('--surface-color').trim(),
+      road: computedStyles.getPropertyValue('--road-color').trim(),
+  };
+
+  // --- Simulation & PID State ---
+  let simulationState = { isRunning: false, animationFrameId: null, lastTimestamp: 0, history: [], maxHistory: 300 };
+  let car = {};
+  let pid = { kp: 0.1, ki: 0.008, kd: 0.8, integral: 0, lastError: 0 };
+  
+  // --- Initialization ---
+  function init() {
+    setCanvasSizes();
+    setupEventListeners();
+    updatePIDValuesFromUI();
+    resetCar();
+    draw();
+  }
+  
+  function setCanvasSizes() {
+    const container = document.getElementById('simulation-container');
+    const containerWidth = container.offsetWidth;
+    const availableHeight = window.innerHeight - container.offsetTop - 100;
+    
+    roadCanvas.width = containerWidth;
+    roadCanvas.height = Math.max(250, Math.min(350, availableHeight * 0.6));
+
+    const dataDisplayWidth = document.querySelector('.data-display').offsetWidth;
+    const graphContainerWidth = document.getElementById('info-plots-container').offsetWidth;
+    graphCanvas.width = graphContainerWidth - dataDisplayWidth - 20;
+    graphCanvas.height = Math.max(120, Math.min(150, availableHeight * 0.4));
+  }
+
+  function resetCar() {
+    car = { x: 100, y: roadCanvas.height / 2 + 60, heading: 0, velocity: parseFloat(sliders.speed.value), width: 40, height: 20, disturbance: 0 };
+    const centerline = getLaneCenterY(car.x);
+    pid.integral = 0;
+    pid.lastError = car.y - centerline; // Initialize lastError with current error
+    simulationState.history = [];
+    updateDataDisplays(0, 0, 0, 0, 0); // Clear displays on reset
+  }
+  
+  // --- Event Listeners ---
+  function setupEventListeners() {
+    window.onresize = () => { pauseSimulation(); setCanvasSizes(); resetCar(); draw(); };
+
+    for (const key in sliders) {
+      sliders[key].oninput = () => {
+        outputs[key].textContent = sliders[key].value;
+        if(key === 'speed') car.velocity = parseFloat(sliders.speed.value);
+        else updatePIDValuesFromUI();
+      };
+    }
+    
+    buttons.start.onclick = startSimulation;
+    buttons.pause.onclick = pauseSimulation;
+    buttons.reset.onclick = () => { pauseSimulation(); resetCar(); draw(); };
+    roadCanvas.onclick = e => { 
+        const rect = roadCanvas.getBoundingClientRect(); 
+        const clickY = e.clientY - rect.top;
+        // Apply disturbance that pushes car away from click point
+        // If click is above car, push car down (+y). If click is below, push car up (-y).
+        car.disturbance = 60 * (clickY < car.y ? 1 : -1); 
+    };
+    
+    buttons.presetP.onclick = () => setPreset(0.2, 0, 0);
+    buttons.presetPI.onclick = () => setPreset(0.15, 0.01, 0);
+    buttons.presetGood.onclick = () => setPreset(0.1, 0.008, 0.8);
+    buttons.presetOver.onclick = () => setPreset(0.05, 0.01, 1.5);
+    buttons.presetUnder.onclick = () => setPreset(0.4, 0.015, 0.5);
+  }
+
+  function setPreset(kp, ki, kd) {
+    sliders.kp.value = kp; sliders.ki.value = ki; sliders.kd.value = kd;
+    outputs.kp.textContent = kp.toFixed(3); // Adjust for Ki's higher precision
+    outputs.ki.textContent = ki.toFixed(3);
+    outputs.kd.textContent = kd.toFixed(3);
+    updatePIDValuesFromUI();
+  }
+
+  function updatePIDValuesFromUI() {
+    pid.kp = parseFloat(sliders.kp.value);
+    pid.ki = parseFloat(sliders.ki.value);
+    pid.kd = parseFloat(sliders.kd.value);
+  }
+
+  // --- Simulation Loop ---
+  function startSimulation() {
+    if (simulationState.isRunning) return;
+    simulationState.isRunning = true;
+    simulationState.lastTimestamp = performance.now();
+    simulationState.animationFrameId = requestAnimationFrame(gameLoop);
+  }
+
+  function pauseSimulation() {
+    simulationState.isRunning = false;
+    cancelAnimationFrame(simulationState.animationFrameId);
+  }
+
+  function gameLoop(timestamp) {
+    if (!simulationState.isRunning) return;
+    const dt = (timestamp - simulationState.lastTimestamp) / 1000;
+    simulationState.lastTimestamp = timestamp;
+    
+    // Prevent large dt spikes if tab is inactive for a long time
+    // If dt is very large, the simulation can jump, causing derivative issues.
+    // Cap dt to a reasonable maximum (e.g., 1/10th of a second)
+    const clampedDt = Math.min(dt, 0.1); 
+    if (clampedDt === 0) { // If dt is practically zero, skip update but keep looping
+        simulationState.animationFrameId = requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    update(clampedDt); // Use clamped dt for consistent updates
+    draw();
+    simulationState.animationFrameId = requestAnimationFrame(gameLoop);
+  }
+
+  function update(dt) {
+    // If car goes off screen, reset its position
+    if (car.x > roadCanvas.width + car.width) resetCar();
+
+    const centerlineY = getLaneCenterY(car.x);
+    const error = car.y - centerlineY; // Current error: Positive if car is above centerline, negative if below
+
+    // Integral Term: Accumulates error over time
+    pid.integral += error * dt;
+    // Anti-windup: Prevent integral term from growing indefinitely when control is saturated
+    pid.integral = Math.max(-200, Math.min(200, pid.integral)); 
+    
+    // Derivative Term: Rate of change of error
+    // (error - pid.lastError) gives the change in error.
+    // Divided by dt gives the rate.
+    const derivative = (error - pid.lastError) / dt; 
+    pid.lastError = error; // Store current error for next derivative calculation
+
+    // Calculate PID terms
+    const pTerm = pid.kp * error;
+    const iTerm = pid.ki * pid.integral;
+    const dTerm = pid.kd * derivative;
+    const correction = pTerm + iTerm + dTerm; // Total correction to apply
+
+    // Apply external disturbance (wind)
+    if (Math.abs(car.disturbance) > 0.1) { 
+        car.y += car.disturbance * dt; // Disturbance directly affects car's Y position
+        car.disturbance *= 0.95; // Disturbance decays over time
+    }
+    
+    // Calculate steering angle based on correction
+    // The negative sign is crucial:
+    // If error is positive (car too high), correction is positive, -atan(positive) is negative angle (steer down).
+    // If error is negative (car too low), correction is negative, -atan(negative) is positive angle (steer up).
+    const steerAngle = -Math.atan(correction / 100); // Divide by a factor (e.g., 100) to scale correction to a reasonable angle range
+    // Limit max steering angle to prevent extreme turns
+    car.heading = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, steerAngle));
+
+    // Update car position based on velocity and heading
+    car.x += car.velocity * Math.cos(car.heading);
+    car.y += car.velocity * Math.sin(car.heading);
+    
+    // Store history for plotting
+    simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error }); // Store error for graph
+    if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift();
+    
+    updateDataDisplays(error, pTerm, iTerm, dTerm, correction);
+  }
+  
+  function updateDataDisplays(error, p, i, d, corr) {
+    dataDisplays.error.textContent = error.toFixed(2);
+    dataDisplays.p.textContent = p.toFixed(2);
+    dataDisplays.i.textContent = i.toFixed(2);
+    dataDisplays.d.textContent = d.toFixed(2);
+    dataDisplays.correction.textContent = corr.toFixed(2);
+  }
+  
+  // --- Drawing ---
+  function draw() {
+    roadCtx.clearRect(0, 0, roadCanvas.width, roadCanvas.height);
+    drawRoad();
+    drawCar();
+    drawGraph();
+  }
+
+  // Defines the wavy path of the road's centerline
+  function getLaneCenterY(x) {
+    // roadCanvas.height / 2 is the base Y.
+    // 50 * Math.sin(0.005 * x) creates a sine wave with amplitude 50 and frequency based on 0.005.
+    return roadCanvas.height / 2 + 50 * Math.sin(0.005 * x);
+  }
+
+  function drawRoad() {
+    const laneWidth = 80; // Total width of the drivable lane
+    // Draw solid outer lane boundaries
+    roadCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    roadCtx.lineWidth = 5;
+    for (let side = -1; side <= 1; side += 2) { // -1 for top boundary, 1 for bottom boundary
+      roadCtx.beginPath();
+      for (let x = 0; x <= roadCanvas.width; x += 10) { // Draw points along the x-axis
+          roadCtx.lineTo(x, getLaneCenterY(x) + side * laneWidth / 2); // LaneCenter +/- half laneWidth
+      }
+      roadCtx.stroke();
+    }
+    // Draw dashed center line
+    roadCtx.setLineDash([20, 25]); // 20px dash, 25px gap
+    roadCtx.lineWidth = 3;
+    roadCtx.beginPath();
+    for (let x = 0; x <= roadCanvas.width; x += 10) {
+        roadCtx.lineTo(x, getLaneCenterY(x));
+    }
+    roadCtx.stroke();
+    roadCtx.setLineDash([]); // Reset line dash
+  }
+
+  function drawCar() {
+    roadCtx.save(); // Save current canvas state
+    roadCtx.translate(car.x, car.y); // Move origin to car's center
+    roadCtx.rotate(car.heading); // Rotate canvas to car's heading
+    
+    // Draw car body
+    roadCtx.fillStyle = colors.primary;
+    roadCtx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+    
+    // Draw car cabin (darker rectangle inside)
+    roadCtx.fillStyle = 'rgba(36, 40, 59, 0.8)';
+    roadCtx.fillRect(-car.width / 3, -car.height / 2 + 3, car.width * 0.6, car.height - 6);
+    
+    roadCtx.restore(); // Restore canvas state
+  }
+  
+  function drawGraph() {
+      graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+      const h = graphCanvas.height, w = graphCanvas.width, midY = h / 2;
+      
+      // Determine max Y value for scaling the graph dynamically based on current and historical data
+      let currentMaxVal = 0;
+      simulationState.history.forEach(point => {
+          currentMaxVal = Math.max(currentMaxVal, Math.abs(point.p), Math.abs(point.i), Math.abs(point.d), Math.abs(point.error));
+      });
+      // Add a buffer to the max value, ensure it's not zero
+      const graphMaxVal = Math.max(currentMaxVal * 1.2, 50); // Min 50 to always have some scale
+
+      // Draw horizontal mid-line (zero error line)
+      graphCtx.strokeStyle = colors.border;
+      graphCtx.lineWidth = 1;
+      graphCtx.beginPath(); graphCtx.moveTo(0, midY); graphCtx.lineTo(w, midY); graphCtx.stroke();
+      
+      const plot = (term, color) => {
+          if (pid[term] === 0 && term !== 'error') return; // Don't plot if gain is zero (unless it's error)
+          graphCtx.strokeStyle = color; graphCtx.lineWidth = 2; graphCtx.beginPath();
+          simulationState.history.forEach((point, i) => {
+              const x = (i / simulationState.maxHistory) * w;
+              // Scale y based on graphMaxVal and canvas height
+              const y = midY - (point[term] / graphMaxVal) * (midY * 0.9); // Use 90% of midY for padding
+              if (i === 0) {
+                  graphCtx.moveTo(x, y);
+              } else {
+                  graphCtx.lineTo(x, y);
+              }
+          });
+          graphCtx.stroke();
+      };
+      
+      // Plot Error (blue), P (green), I (orange), D (red)
+      plot('error', colors.blue); // Adding error plot for visual debugging
+      plot('p', colors.green); 
+      plot('i', colors.orange); 
+      plot('d', colors.red);
+
+      // Draw legend
+      graphCtx.font = "12px Inter";
+      let legendX = 10;
+      graphCtx.fillStyle = colors.blue; graphCtx.fillText('Error', legendX, 15); legendX += 45;
+      graphCtx.fillStyle = colors.green; graphCtx.fillText('P', legendX, 15); legendX += 20;
+      graphCtx.fillStyle = colors.orange; graphCtx.fillText('I', legendX, 15); legendX += 20;
+      graphCtx.fillStyle = colors.red; graphCtx.fillText('D', legendX, 15);
+  }
+
+  // --- Run ---
+  init();
+</script>
+</body>
+</html>
