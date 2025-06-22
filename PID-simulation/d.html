@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D Component - Intuitive Visual</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 700px;
+        }
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .scenario-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 20px;
+        }
+        .scenario {
+            flex: 1;
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .scenario.scenario1 {
+            background: #e8f5e8;
+            border-color: #4caf50;
+        }
+        .scenario.scenario2 {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+        .scenario.scenario3 {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+        .scenario.active {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .scenario-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .speedometer {
+            width: 100px;
+            height: 50px;
+            border: 3px solid #333;
+            border-bottom: none;
+            border-radius: 50px 50px 0 0;
+            margin: 10px auto;
+            position: relative;
+            background: linear-gradient(to right, #4caf50, #ff9800, #f44336);
+        }
+        .needle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            height: 40px;
+            background: #333;
+            transform-origin: bottom center;
+            transition: transform 0.5s ease;
+        }
+        .scenario1 .needle { transform: translateX(-50%) rotate(-60deg); }
+        .scenario2 .needle { transform: translateX(-50%) rotate(0deg); }
+        .scenario3 .needle { transform: translateX(-50%) rotate(60deg); }
+        .speed-display {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .scenario1 .speed-display { color: #4caf50; }
+        .scenario2 .speed-display { color: #ff9800; }
+        .scenario3 .speed-display { color: #f44336; }
+        .response-strength {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .scenario1 .response-strength { color: #4caf50; }
+        .scenario2 .response-strength { color: #ff9800; }
+        .scenario3 .response-strength { color: #f44336; }
+        .current-display {
+            background: #f0f8ff;
+            padding: 25px;
+            border-radius: 10px;
+            border: 3px solid #2196f3;
+            margin: 30px 0;
+        }
+        .current-error {
+            font-size: 20px;
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+        .current-response {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+        .explanation {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #ff6b35;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .formula {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .insight {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #2196f3;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .brake-visual {
+            margin: 10px auto;
+            width: 60px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .brake-pressure {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(to right, #4caf50, #ff9800, #f44336);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .scenario1 .brake-pressure { width: 20%; }
+        .scenario2 .brake-pressure { width: 60%; }
+        .scenario3 .brake-pressure { width: 90%; }
+        .arrow {
+            font-size: 24px;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+        .scenario1 .arrow { color: #4caf50; }
+        .scenario2 .arrow { color: #ff9800; }
+        .scenario3 .arrow { color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">D Component: "How FAST is the error changing?"</div>
+        <div class="subtitle">Click each scenario to see how speed of change affects the D component</div>
+        
+        <div class="scenario-container">
+            <div class="scenario scenario1" onclick="showScenario(1)">
+                <div class="scenario-title">Scenario 1: Slow Change</div>
+                <div class="speedometer">
+                    <div class="needle"></div>
+                </div>
+                <div class="speed-display">Slow approach</div>
+                <div class="arrow">🐌</div>
+                <div class="brake-visual">
+                    <div class="brake-pressure"></div>
+                </div>
+                <div class="response-strength">Gentle brake</div>
+            </div>
+            
+            <div class="scenario scenario2" onclick="showScenario(2)">
+                <div class="scenario-title">Scenario 2: Medium Change</div>
+                <div class="speedometer">
+                    <div class="needle"></div>
+                </div>
+                <div class="speed-display">Medium approach</div>
+                <div class="arrow">🚶</div>
+                <div class="brake-visual">
+                    <div class="brake-pressure"></div>
+                </div>
+                <div class="response-strength">Medium brake</div>
+            </div>
+            
+            <div class="scenario scenario3" onclick="showScenario(3)">
+                <div class="scenario-title">Scenario 3: Fast Change</div>
+                <div class="speedometer">
+                    <div class="needle"></div>
+                </div>
+                <div class="speed-display">FAST approach!</div>
+                <div class="arrow">🏃‍♂️💨</div>
+                <div class="brake-visual">
+                    <div class="brake-pressure"></div>
+                </div>
+                <div class="response-strength">HARD brake!</div>
+            </div>
+        </div>
+        
+        <div class="current-display" id="currentDisplay">
+            <div class="current-error" id="currentError">Click a scenario above to see how D component works!</div>
+            <div class="current-response" id="currentResponse">🚗 D component acts like intelligent brakes</div>
+        </div>
+        
+        <div class="explanation">
+            <strong>The Key Insight:</strong><br><br>
+            
+            <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                <strong>⚠️ Same final error in all scenarios!</strong><br>
+                The ONLY difference is HOW FAST we're approaching the target.
+            </div>
+            
+            <strong>🚗 D Component = Smart Brakes:</strong>
+            <ul>
+                <li><strong>Scenario 1:</strong> Approaching slowly → Light braking (don't need much correction)</li>
+                <li><strong>Scenario 2:</strong> Approaching at medium speed → Medium braking</li>
+                <li><strong>Scenario 3:</strong> Approaching too fast → HARD braking (prevent overshoot!)</li>
+            </ul>
+            
+            <div class="formula">
+                D_response = Kd × d(error)/dt<br>
+                <small>Translation: D response gets stronger when error is changing quickly</small>
+            </div>
+            
+            <strong>🎯 Purpose:</strong> Prevent overshoot and oscillation by "predicting the future"
+        </div>
+        
+        <div class="insight">
+            💡 Real Example: Driving into a parking space.<br>
+            • Creeping slowly: Light brake pressure<br>
+            • Normal speed: Normal brake pressure<br>
+            • Going too fast: SLAM the brakes to avoid hitting the wall!<br><br>
+            D component does the same thing - it "sees" you're approaching fast and applies stronger correction to prevent overshoot.
+        </div>
+    </div>
+
+    <script>
+        function showScenario(num) {
+            // Remove active class from all scenarios
+            document.querySelectorAll('.scenario').forEach(s => s.classList.remove('active'));
+            
+            // Add active class to clicked scenario
+            document.querySelector(`.scenario${num}`).classList.add('active');
+            
+            // Update display based on scenario
+            const errorText = document.getElementById('currentError');
+            const responseText = document.getElementById('currentResponse');
+            
+            switch(num) {
+                case 1:
+                    errorText.textContent = 'Error changing slowly: -0.1 units/second';
+                    errorText.style.color = '#4caf50';
+                    responseText.textContent = 'D Response: 0.2 (Gentle - no need to brake hard)';
+                    responseText.style.color = '#4caf50';
+                    break;
+                case 2:
+                    errorText.textContent = 'Error changing at medium rate: -0.5 units/second';
+                    errorText.style.color = '#ff9800';
+                    responseText.textContent = 'D Response: 1.0 (Medium - moderate braking needed)';
+                    responseText.style.color = '#ff9800';
+                    break;
+                case 3:
+                    errorText.textContent = 'Error changing very fast: -2.0 units/second!';
+                    errorText.style.color = '#f44336';
+                    responseText.textContent = 'D Response: 4.0 (STRONG - prevent overshoot!)';
+                    responseText.style.color = '#f44336';
+                    break;
+            }
+        }
+        
+        // Start with scenario 1 selected
+        showScenario(1);
+    </script>
+</body>
+</html>
