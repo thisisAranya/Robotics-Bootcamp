@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P Component - Intuitive Visual</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .analogy-container {
+            margin: 30px 0;
+        }
+        .car-scene {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 70%, #228B22 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .road {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background: #404040;
+            border-top: 3px dashed #FFD700;
+        }
+        .car {
+            position: absolute;
+            bottom: 10px;
+            left: 150px;
+            width: 60px;
+            height: 30px;
+            background: #FF4444;
+            border-radius: 5px;
+            transition: all 0.5s ease;
+        }
+        .target {
+            position: absolute;
+            bottom: 10px;
+            right: 100px;
+            width: 4px;
+            height: 40px;
+            background: #00FF00;
+            box-shadow: 0 0 10px #00FF00;
+        }
+        .error-arrow {
+            position: absolute;
+            bottom: 50px;
+            left: 210px;
+            right: 104px;
+            height: 3px;
+            background: #FF6B35;
+            transition: all 0.5s ease;
+        }
+        .error-text {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FF6B35;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .gas-pedal {
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .pedal {
+            width: 60px;
+            height: 100px;
+            background: #333;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .pedal-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #FF4444, #FF8888);
+            transition: height 0.5s ease;
+            border-radius: 0 0 10px 10px;
+        }
+        .explanation {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #FF6B35;
+            margin: 20px 0;
+        }
+        .big-error {
+            font-size: 18px;
+            color: #FF4444;
+            font-weight: bold;
+        }
+        .small-error {
+            font-size: 18px;
+            color: #FFA500;
+            font-weight: bold;
+        }
+        .no-error {
+            font-size: 18px;
+            color: #00AA00;
+            font-weight: bold;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">P Component: Like Driving a Car</div>
+        <div class="subtitle">"How hard do I press the gas pedal RIGHT NOW?"</div>
+        
+        <div class="car-scene">
+            <div class="road"></div>
+            <div class="car" id="car">🚗</div>
+            <div class="target" id="target"></div>
+            <div class="error-arrow" id="errorArrow"></div>
+            <div class="error-text" id="errorText">BIG ERROR!</div>
+        </div>
+        
+        <div class="gas-pedal">
+            <div style="text-align: center;">
+                <div>Gas Pedal</div>
+                <div class="pedal">
+                    <div class="pedal-fill" id="pedalFill" style="height: 80%;"></div>
+                </div>
+                <div id="pedalText" class="big-error">PRESS HARD!</div>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <strong>The P Component Logic:</strong><br>
+            🔴 <strong>Big Error</strong> → Press gas pedal HARD<br>
+            🟡 <strong>Small Error</strong> → Press gas pedal gently<br>
+            🟢 <strong>No Error</strong> → Don't press gas pedal
+        </div>
+        
+        <div>
+            <button onclick="setBigError()">Big Error</button>
+            <button onclick="setSmallError()">Small Error</button>
+            <button onclick="setNoError()">No Error</button>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            <strong>Key Insight:</strong> P component responds <em>proportionally</em> to how far you are from your goal, just like you'd naturally drive a car!
+        </div>
+    </div>
+
+    <script>
+        function setBigError() {
+            document.getElementById('car').style.left = '50px';
+            document.getElementById('errorArrow').style.left = '110px';
+            document.getElementById('errorArrow').style.right = '104px';
+            document.getElementById('errorText').textContent = 'BIG ERROR!';
+            document.getElementById('errorText').style.background = '#FF4444';
+            document.getElementById('pedalFill').style.height = '90%';
+            document.getElementById('pedalText').textContent = 'PRESS HARD!';
+            document.getElementById('pedalText').className = 'big-error';
+        }
+        
+        function setSmallError() {
+            document.getElementById('car').style.left = '350px';
+            document.getElementById('errorArrow').style.left = '410px';
+            document.getElementById('errorArrow').style.right = '104px';
+            document.getElementById('errorText').textContent = 'Small Error';
+            document.getElementById('errorText').style.background = '#FFA500';
+            document.getElementById('pedalFill').style.height = '30%';
+            document.getElementById('pedalText').textContent = 'Press Gently';
+            document.getElementById('pedalText').className = 'small-error';
+        }
+        
+        function setNoError() {
+            document.getElementById('car').style.left = '436px';
+            document.getElementById('errorArrow').style.left = '496px';
+            document.getElementById('errorArrow').style.right = '104px';
+            document.getElementById('errorText').textContent = 'Perfect!';
+            document.getElementById('errorText').style.background = '#00AA00';
+            document.getElementById('pedalFill').style.height = '0%';
+            document.getElementById('pedalText').textContent = 'No Gas Needed';
+            document.getElementById('pedalText').className = 'no-error';
+        }
+        
+        // Start with big error
+        setBigError();
+    </script>
+</body>
+</html>
