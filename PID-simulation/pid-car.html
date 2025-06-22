@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Advanced PID Controller Simulation</title>
+  <title>Advanced PID Controller Simulation (Corrected)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -179,7 +179,6 @@
       border: 3px solid var(--bg-color);
     }
 
-
     .button-group {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -237,6 +236,17 @@
     .help-card li {
       margin-bottom: 8px;
     }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 8px;
+    }
+    .status-good { background-color: var(--green); }
+    .status-warning { background-color: var(--orange); }
+    .status-error { background-color: var(--red); }
   </style>
 </head>
 <body>
@@ -244,7 +254,7 @@
 <div class="main-container">
 
   <div id="simulation-container">
-    <h1><span class="icon">🚗</span> Advanced PID Controller Simulation</h1>
+    <h1><span class="icon">🚗</span> Advanced PID Controller Simulation (Corrected)</h1>
     <canvas id="roadCanvas"></canvas>
     <div id="info-plots-container">
       <div class="data-display">
@@ -253,6 +263,7 @@
           <div class="data-item" style="color: var(--orange)"><span>I Term (Integral)</span><span id="iVal">0.00</span></div>
           <div class="data-item" style="color: var(--red)"><span>D Term (Derivative)</span><span id="dVal">0.00</span></div>
           <div class="data-item" style="border-top: 1px solid var(--border-color); padding-top: 12px;"><span>Total Correction</span><span id="corrVal">0.00</span></div>
+          <div class="data-item"><span>Integral Windup <span id="windupStatus" class="status-indicator status-good"></span></span><span id="windupVal">0%</span></div>
       </div>
       <canvas id="graphCanvas"></canvas>
     </div>
@@ -300,13 +311,16 @@
     </div>
     
     <div class="control-card help-card">
-        <h2>How It Works</h2>
-        <p>Click the road to create a "wind" disturbance.</p>
+        <h2>Improvements Made</h2>
+        <p><strong>Fixed Issues:</strong></p>
         <ul>
-            <li><strong>K<sub>p</sub> (Proportional)</strong>: Reacts to the <strong>current error</strong>. A high Kp makes the car react aggressively, but can lead to overshooting and oscillations.</li>
-            <li><strong>K<sub>i</sub> (Integral)</strong>: Accumulates <strong>past errors</strong>. It eliminates steady-state error, ensuring the car returns exactly to center over time. Too high, and it causes massive overshoots (wind-up).</li>
-            <li><strong>K<sub>d</sub> (Derivative)</strong>: Predicts <strong>future error</strong> by looking at the rate of change. It dampens oscillations and reduces overshoot, acting like a brake as the car approaches the center line.</li>
+            <li><strong>Derivative Kick</strong>: Now uses derivative-on-measurement instead of derivative-on-error for smoother curves</li>
+            <li><strong>Integral Windup</strong>: Better anti-windup limits that scale with Ki gain</li>
+            <li><strong>Initialization</strong>: No more derivative spikes on reset</li>
+            <li><strong>Time Steps</strong>: Better handling of variable frame rates</li>
+            <li><strong>Steering</strong>: More realistic steering angle mapping</li>
         </ul>
+        <p>Click the road to create wind disturbances and test the controller's robustness!</p>
     </div>
   </div>
 
@@ -322,11 +336,27 @@
   // Sliders, Outputs, and Data Displays
   const sliders = { kp: document.getElementById("kpSlider"), ki: document.getElementById("kiSlider"), kd: document.getElementById("kdSlider"), speed: document.getElementById("speedSlider") };
   const outputs = { kp: document.getElementById("kpVal"), ki: document.getElementById("kiVal"), kd: document.getElementById("kdVal"), speed: document.getElementById("speedVal") };
-  const dataDisplays = { error: document.getElementById('errorVal'), p: document.getElementById('pVal'), i: document.getElementById('iVal'), d: document.getElementById('dVal'), correction: document.getElementById('corrVal') };
-  const buttons = { start: document.getElementById("startBtn"), pause: document.getElementById("pauseBtn"), reset: document.getElementById("resetBtn"), presetP: document.getElementById("presetP"), presetPI: document.getElementById("presetPI"), presetGood: document.getElementById("presetGood"), presetOver: document.getElementById("presetOver"), presetUnder: document.getElementById("presetUnder") };
+  const dataDisplays = { 
+    error: document.getElementById('errorVal'), 
+    p: document.getElementById('pVal'), 
+    i: document.getElementById('iVal'), 
+    d: document.getElementById('dVal'), 
+    correction: document.getElementById('corrVal'),
+    windup: document.getElementById('windupVal'),
+    windupStatus: document.getElementById('windupStatus')
+  };
+  const buttons = { 
+    start: document.getElementById("startBtn"), 
+    pause: document.getElementById("pauseBtn"), 
+    reset: document.getElementById("resetBtn"), 
+    presetP: document.getElementById("presetP"), 
+    presetPI: document.getElementById("presetPI"), 
+    presetGood: document.getElementById("presetGood"), 
+    presetOver: document.getElementById("presetOver"), 
+    presetUnder: document.getElementById("presetUnder") 
+  };
 
-  // --- Color Palette (FIXED) ---
-  // Read CSS variables once and store them for canvas use
+  // --- Color Palette ---
   const computedStyles = getComputedStyle(document.documentElement);
   const colors = {
       primary: computedStyles.getPropertyValue('--primary-color').trim(),
@@ -339,9 +369,9 @@
   };
 
   // --- Simulation & PID State ---
-  let simulationState = { isRunning: false, animationFrameId: null, lastTimestamp: 0, history: [], maxHistory: 300 };
+  let simulationState = { isRunning: false, animationFrameId: null, lastTimestamp: 0, history: [], maxHistory: 300, firstUpdate: true };
   let car = {};
-  let pid = { kp: 0.1, ki: 0.008, kd: 0.8, integral: 0, lastError: 0 };
+  let pid = { kp: 0.1, ki: 0.008, kd: 0.8, integral: 0, lastCarY: 0 }; // Changed: track lastCarY instead of lastError
   
   // --- Initialization ---
   function init() {
@@ -367,12 +397,22 @@
   }
 
   function resetCar() {
-    car = { x: 100, y: roadCanvas.height / 2 + 60, heading: 0, velocity: parseFloat(sliders.speed.value), width: 40, height: 20, disturbance: 0 };
-    const centerline = getLaneCenterY(car.x);
+    car = { 
+      x: 100, 
+      y: roadCanvas.height / 2 + 60, 
+      heading: 0, 
+      velocity: parseFloat(sliders.speed.value), 
+      width: 40, 
+      height: 20, 
+      disturbance: 0 
+    };
+    
+    // FIXED: Proper initialization to avoid derivative spikes
     pid.integral = 0;
-    pid.lastError = car.y - centerline; // Initialize lastError with current error
+    pid.lastCarY = car.y; // Initialize with current position
     simulationState.history = [];
-    updateDataDisplays(0, 0, 0, 0, 0); // Clear displays on reset
+    simulationState.firstUpdate = true; // Flag to skip derivative on first update
+    updateDataDisplays(0, 0, 0, 0, 0);
   }
   
   // --- Event Listeners ---
@@ -394,7 +434,6 @@
         const rect = roadCanvas.getBoundingClientRect(); 
         const clickY = e.clientY - rect.top;
         // Apply disturbance that pushes car away from click point
-        // If click is above car, push car down (+y). If click is below, push car up (-y).
         car.disturbance = 60 * (clickY < car.y ? 1 : -1); 
     };
     
@@ -407,7 +446,7 @@
 
   function setPreset(kp, ki, kd) {
     sliders.kp.value = kp; sliders.ki.value = ki; sliders.kd.value = kd;
-    outputs.kp.textContent = kp.toFixed(3); // Adjust for Ki's higher precision
+    outputs.kp.textContent = kp.toFixed(3);
     outputs.ki.textContent = ki.toFixed(3);
     outputs.kd.textContent = kd.toFixed(3);
     updatePIDValuesFromUI();
@@ -437,16 +476,10 @@
     const dt = (timestamp - simulationState.lastTimestamp) / 1000;
     simulationState.lastTimestamp = timestamp;
     
-    // Prevent large dt spikes if tab is inactive for a long time
-    // If dt is very large, the simulation can jump, causing derivative issues.
-    // Cap dt to a reasonable maximum (e.g., 1/10th of a second)
-    const clampedDt = Math.min(dt, 0.1); 
-    if (clampedDt === 0) { // If dt is practically zero, skip update but keep looping
-        simulationState.animationFrameId = requestAnimationFrame(gameLoop);
-        return;
-    }
-
-    update(clampedDt); // Use clamped dt for consistent updates
+    // IMPROVED: Better time step handling
+    const clampedDt = Math.max(0.001, Math.min(dt, 0.05)); // Min 1ms, max 50ms
+    
+    update(clampedDt);
     draw();
     simulationState.animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -456,56 +489,71 @@
     if (car.x > roadCanvas.width + car.width) resetCar();
 
     const centerlineY = getLaneCenterY(car.x);
-    const error = car.y - centerlineY; // Current error: Positive if car is above centerline, negative if below
+    const error = car.y - centerlineY;
 
-    // Integral Term: Accumulates error over time
-    pid.integral += error * dt;
-    // Anti-windup: Prevent integral term from growing indefinitely when control is saturated
-    pid.integral = Math.max(-200, Math.min(200, pid.integral)); 
-    
-    // Derivative Term: Rate of change of error
-    // (error - pid.lastError) gives the change in error.
-    // Divided by dt gives the rate.
-    const derivative = (error - pid.lastError) / dt; 
-    pid.lastError = error; // Store current error for next derivative calculation
-
-    // Calculate PID terms
+    // PROPORTIONAL TERM (unchanged)
     const pTerm = pid.kp * error;
+
+    // IMPROVED INTEGRAL TERM with better anti-windup
+    pid.integral += error * dt;
+    
+    // FIXED: Anti-windup limits that scale with Ki gain
+    const maxIntegralContribution = 100; // Maximum allowed integral contribution
+    const maxIntegral = pid.ki > 0.001 ? maxIntegralContribution / pid.ki : 1000;
+    pid.integral = Math.max(-maxIntegral, Math.min(maxIntegral, pid.integral));
+    
     const iTerm = pid.ki * pid.integral;
-    const dTerm = pid.kd * derivative;
-    const correction = pTerm + iTerm + dTerm; // Total correction to apply
+
+    // FIXED: Derivative on measurement (not error) to prevent derivative kick
+    let dTerm = 0;
+    if (!simulationState.firstUpdate) {
+      // Derivative of process variable (car position), not error
+      const processDerivative = -(car.y - pid.lastCarY) / dt;
+      dTerm = pid.kd * processDerivative;
+    }
+    simulationState.firstUpdate = false;
+    pid.lastCarY = car.y; // Store current position for next iteration
+
+    const correction = pTerm + iTerm + dTerm;
 
     // Apply external disturbance (wind)
     if (Math.abs(car.disturbance) > 0.1) { 
-        car.y += car.disturbance * dt; // Disturbance directly affects car's Y position
-        car.disturbance *= 0.95; // Disturbance decays over time
+        car.y += car.disturbance * dt;
+        car.disturbance *= 0.95; // Exponential decay
     }
     
-    // Calculate steering angle based on correction
-    // The negative sign is crucial:
-    // If error is positive (car too high), correction is positive, -atan(positive) is negative angle (steer down).
-    // If error is negative (car too low), correction is negative, -atan(negative) is positive angle (steer up).
-    const steerAngle = -Math.atan(correction / 100); // Divide by a factor (e.g., 100) to scale correction to a reasonable angle range
-    // Limit max steering angle to prevent extreme turns
-    car.heading = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, steerAngle));
+    // IMPROVED: More direct steering angle mapping
+    const maxSteerAngle = Math.PI / 4; // 45 degrees max
+    const steeringSensitivity = 0.008; // Tunable parameter
+    car.heading = Math.max(-maxSteerAngle, Math.min(maxSteerAngle, -correction * steeringSensitivity));
 
     // Update car position based on velocity and heading
     car.x += car.velocity * Math.cos(car.heading);
     car.y += car.velocity * Math.sin(car.heading);
     
     // Store history for plotting
-    simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error }); // Store error for graph
+    simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error });
     if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift();
     
-    updateDataDisplays(error, pTerm, iTerm, dTerm, correction);
+    // Calculate windup percentage for monitoring
+    const windupPercentage = Math.abs(pid.integral / maxIntegral) * 100;
+    
+    updateDataDisplays(error, pTerm, iTerm, dTerm, correction, windupPercentage);
   }
   
-  function updateDataDisplays(error, p, i, d, corr) {
+  function updateDataDisplays(error, p, i, d, corr, windupPercent = 0) {
     dataDisplays.error.textContent = error.toFixed(2);
     dataDisplays.p.textContent = p.toFixed(2);
     dataDisplays.i.textContent = i.toFixed(2);
     dataDisplays.d.textContent = d.toFixed(2);
     dataDisplays.correction.textContent = corr.toFixed(2);
+    dataDisplays.windup.textContent = windupPercent.toFixed(0) + '%';
+    
+    // Update windup status indicator
+    const windupStatus = dataDisplays.windupStatus;
+    windupStatus.className = 'status-indicator ' + 
+      (windupPercent < 50 ? 'status-good' : 
+       windupPercent < 80 ? 'status-warning' : 'status-error');
   }
   
   // --- Drawing ---
@@ -516,63 +564,59 @@
     drawGraph();
   }
 
-  // Defines the wavy path of the road's centerline
   function getLaneCenterY(x) {
-    // roadCanvas.height / 2 is the base Y.
-    // 50 * Math.sin(0.005 * x) creates a sine wave with amplitude 50 and frequency based on 0.005.
     return roadCanvas.height / 2 + 50 * Math.sin(0.005 * x);
   }
 
   function drawRoad() {
-    const laneWidth = 80; // Total width of the drivable lane
+    const laneWidth = 80;
     // Draw solid outer lane boundaries
     roadCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     roadCtx.lineWidth = 5;
-    for (let side = -1; side <= 1; side += 2) { // -1 for top boundary, 1 for bottom boundary
+    for (let side = -1; side <= 1; side += 2) {
       roadCtx.beginPath();
-      for (let x = 0; x <= roadCanvas.width; x += 10) { // Draw points along the x-axis
-          roadCtx.lineTo(x, getLaneCenterY(x) + side * laneWidth / 2); // LaneCenter +/- half laneWidth
+      for (let x = 0; x <= roadCanvas.width; x += 10) {
+          roadCtx.lineTo(x, getLaneCenterY(x) + side * laneWidth / 2);
       }
       roadCtx.stroke();
     }
     // Draw dashed center line
-    roadCtx.setLineDash([20, 25]); // 20px dash, 25px gap
+    roadCtx.setLineDash([20, 25]);
     roadCtx.lineWidth = 3;
     roadCtx.beginPath();
     for (let x = 0; x <= roadCanvas.width; x += 10) {
         roadCtx.lineTo(x, getLaneCenterY(x));
     }
     roadCtx.stroke();
-    roadCtx.setLineDash([]); // Reset line dash
+    roadCtx.setLineDash([]);
   }
 
   function drawCar() {
-    roadCtx.save(); // Save current canvas state
-    roadCtx.translate(car.x, car.y); // Move origin to car's center
-    roadCtx.rotate(car.heading); // Rotate canvas to car's heading
+    roadCtx.save();
+    roadCtx.translate(car.x, car.y);
+    roadCtx.rotate(car.heading);
     
     // Draw car body
     roadCtx.fillStyle = colors.primary;
     roadCtx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
     
-    // Draw car cabin (darker rectangle inside)
+    // Draw car cabin
     roadCtx.fillStyle = 'rgba(36, 40, 59, 0.8)';
     roadCtx.fillRect(-car.width / 3, -car.height / 2 + 3, car.width * 0.6, car.height - 6);
     
-    roadCtx.restore(); // Restore canvas state
+    roadCtx.restore();
   }
   
   function drawGraph() {
       graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
       const h = graphCanvas.height, w = graphCanvas.width, midY = h / 2;
       
-      // Determine max Y value for scaling the graph dynamically based on current and historical data
+      // Determine max Y value for scaling
       let currentMaxVal = 0;
       simulationState.history.forEach(point => {
           currentMaxVal = Math.max(currentMaxVal, Math.abs(point.p), Math.abs(point.i), Math.abs(point.d), Math.abs(point.error));
       });
-      // Add a buffer to the max value, ensure it's not zero
-      const graphMaxVal = Math.max(currentMaxVal * 1.2, 50); // Min 50 to always have some scale
+      const graphMaxVal = Math.max(currentMaxVal * 1.2, 20); // Reduced minimum for better scaling
 
       // Draw horizontal mid-line (zero error line)
       graphCtx.strokeStyle = colors.border;
@@ -580,12 +624,11 @@
       graphCtx.beginPath(); graphCtx.moveTo(0, midY); graphCtx.lineTo(w, midY); graphCtx.stroke();
       
       const plot = (term, color) => {
-          if (pid[term] === 0 && term !== 'error') return; // Don't plot if gain is zero (unless it's error)
+          if (simulationState.history.length < 2) return; // Need at least 2 points to draw
           graphCtx.strokeStyle = color; graphCtx.lineWidth = 2; graphCtx.beginPath();
           simulationState.history.forEach((point, i) => {
               const x = (i / simulationState.maxHistory) * w;
-              // Scale y based on graphMaxVal and canvas height
-              const y = midY - (point[term] / graphMaxVal) * (midY * 0.9); // Use 90% of midY for padding
+              const y = midY - (point[term] / graphMaxVal) * (midY * 0.9);
               if (i === 0) {
                   graphCtx.moveTo(x, y);
               } else {
@@ -596,7 +639,7 @@
       };
       
       // Plot Error (blue), P (green), I (orange), D (red)
-      plot('error', colors.blue); // Adding error plot for visual debugging
+      plot('error', colors.blue);
       plot('p', colors.green); 
       plot('i', colors.orange); 
       plot('d', colors.red);
