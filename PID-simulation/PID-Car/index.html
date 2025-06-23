@@ -13,7 +13,7 @@
 <div class="main-container">
 
     <div id="simulation-container">
-        <h1><span class="icon"></span> PID Controller Simulation for LFR </h1>
+        <h1><span class="icon">🚗</span> PID Controller Simulation for LFR </h1>
         <canvas id="roadCanvas"></canvas>
         <div id="info-plots-container">
             <div class="data-display">
@@ -45,16 +45,16 @@
         <div class="control-card">
             <h2>PID Tuning (K<sub>p</sub>, K<sub>i</sub>, K<sub>d</sub>)</h2>
             <div class="slider-group">
-                <label>K<sub>p</sub> (Proportional): <output id="kpVal">0.1</output></label>
+                <label>K<sub>p</sub> (Proportional): <output id="kpVal">0.4</output></label>
                 <input type="range" id="kpSlider" min="0" max="20" step="0.005" value="0.4" class="range-slider"/>
             </div>
             <div class="slider-group">
-                <label>K<sub>i</sub> (Integral): <output id="kdVal">0.8</output></label>
-                <input type="range" id="kdSlider" min="0" max="20" step="0.05" value="0.5" class="range-slider"/>
+                <label>K<sub>i</sub> (Integral): <output id="kiVal">0.015</output></label>
+                <input type="range" id="kiSlider" min="0" max="10" step="0.001" value="0.015" class="range-slider"/>
             </div>
             <div class="slider-group">
-                <label>K<sub>d</sub> (Derivative): <output id="kiVal">0.008</output></label>
-                <input type="range" id="kiSlider" min="0" max="10" step="0.001" value="0.015" class="range-slider"/>
+                <label>K<sub>d</sub> (Derivative): <output id="kdVal">0.5</output></label>
+                <input type="range" id="kdSlider" min="0" max="20" step="0.05" value="0.5" class="range-slider"/>
             </div>
         </div>
 
