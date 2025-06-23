@@ -236,37 +236,22 @@ button {
   background-color: #1976d2;
 }
 
-/* --- New styles for horizontal preset cards --- */
+/* --- Adjusted styles for horizontal preset cards --- */
 .preset-and-help-group {
     display: flex; /* Make this group a flex container */
     flex-wrap: wrap; /* Allow items to wrap to the next line if space is limited */
-    gap: 20px; /* Gap between the two cards */
-    /* No width needed, it will take the width of its parent (.controls) */
+    gap: 20px; /* Gap between the cards */
+    /* If there's only one card, it will simply take full width within this container */
 }
 
 .preset-and-help-group > .control-card {
-    flex: 1 1 calc(50% - 10px); /* Each card tries to take 50% width minus half the gap */
-    min-width: 250px; /* Ensure cards don't become too narrow on smaller screens */
+    /* Since there's only one card now, this style will simply make it take full available width.
+       No need for calc(50% - 10px) as there's no other card to share space with directly. */
+    flex: 1 1 100%; /* Make the single card take full width */
+    min-width: 250px; /* Ensure a reasonable minimum width */
 }
 
-.help-card p {
-  font-size: 15px; /* Slightly larger font */
-  line-height: 1.7; /* Improved line height */
-  margin: 0 0 12px 0; /* Increased margin */
-}
-.help-card strong {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-.help-card ul {
-  padding-left: 24px; /* Increased padding */
-  margin: 0;
-  list-style-type: disc; /* Use disc bullets */
-}
-.help-card li {
-  margin-bottom: 10px; /* Increased margin */
-  color: #555; /* Darker gray */
-}
+/* Removed .help-card specific styles as the element is no longer in HTML */
 
 .status-indicator {
   display: inline-block;
