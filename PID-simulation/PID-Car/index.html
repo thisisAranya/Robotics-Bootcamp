@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>PID Controller Simulation for LFR</title>
+    <title>Advanced PID Controller Simulation (Enhanced)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <div class="main-container">
 
     <div id="simulation-container">
-        <h1><span class="icon"></span> PID Controller Simulation for LFR </h1>
+        <h1><span class="icon">🚗</span> Advanced PID Controller Simulation <br> (Enhanced)</h1>
         <canvas id="roadCanvas"></canvas>
         <div id="info-plots-container">
             <div class="data-display">
@@ -46,15 +46,15 @@
             <h2>PID Tuning (K<sub>p</sub>, K<sub>i</sub>, K<sub>d</sub>)</h2>
             <div class="slider-group">
                 <label>K<sub>p</sub> (Proportional): <output id="kpVal">0.1</output></label>
-                <input type="range" id="kpSlider" min="0" max="5" step="0.005" value="0.4" class="range-slider"/>
+                <input type="range" id="kpSlider" min="0" max="1" step="0.01" value="0.1" class="range-slider"/>
             </div>
             <div class="slider-group">
                 <label>K<sub>i</sub> (Integral): <output id="kiVal">0.008</output></label>
-                <input type="range" id="kiSlider" min="0" max="0.2" step="0.001" value="0.015" class="range-slider"/>
+                <input type="range" id="kiSlider" min="0" max="0.1" step="0.001" value="0.008" class="range-slider"/>
             </div>
             <div class="slider-group">
                 <label>K<sub>d</sub> (Derivative): <output id="kdVal">0.8</output></label>
-                <input type="range" id="kdSlider" min="0" max="2" step="0.05" value="0.5" class="range-slider"/>
+                <input type="range" id="kdSlider" min="0" max="2" step="0.05" value="0.8" class="range-slider"/>
             </div>
         </div>
 
@@ -63,10 +63,12 @@
             <div class="slider-group">
                 <label for="pathSelect">Road Path Type:</label>
                 <select id="pathSelect">
-                    <option value="sine">Sinusoidal</option>
+                    <option value="sine">Sinusoidal (Default)</option>
                     <option value="straight">Straight Line</option>
                     <option value="circle">Circular Track</option>
                     <option value="rectangle">Rectangular Track</option>
+                    <option value="figure8">Figure-8</option>
+                    <option value="spiral">Spiral</option>
                 </select>
             </div>
             <div class="slider-group">
@@ -75,30 +77,32 @@
             </div>
         </div>
 
-        <div class="control-card">
-            <h2>Tuning Presets</h2>
-            <div class="presets-group">
-                <button id="presetP">P-Only</button>
-                <button id="presetPI">PI</button>
-                <button id="presetGood">Underdamped</button>
-                <button id="presetOver">Overdamped</button>
-                <button id="presetUnder">Good</button>
+        <div class="preset-and-help-group">
+            <div class="control-card">
+                <h2>Tuning Presets</h2>
+                <div class="presets-group">
+                    <button id="presetP">P-Only</button>
+                    <button id="presetPI">PI</button>
+                    <button id="presetGood">Good</button>
+                    <button id="presetOver">Overdamped</button>
+                    <button id="presetUnder">Underdamped</button>
+                </div>
+            </div>
+            
+            <div class="control-card help-card">
+                <h2>Mathematically Tuned Presets</h2>
+                <p><strong>Preset Descriptions:</strong></p>
+                <ul>
+                    <li><strong>P-Only</strong>: Fast response, steady-state error, some oscillation (Kp=0.3)</li>
+                    <li><strong>PI</strong>: Good steady-state accuracy, moderate overshoot (Kp=0.2, Ki=0.015)</li>
+                    <li><strong>Good</strong>: Well-balanced using Ziegler-Nichols, minimal overshoot (~2%)</li>
+                    <li><strong>Overdamped</strong>: Very stable, slow response, no overshoot (ζ>1)</li>
+                    <li><strong>Underdamped</strong>: Fast response, significant overshoot (~50%), oscillatory (ζ<0.7)</li>
+                </ul>
+                <p>Click the road to create wind disturbances and test robustness!</p>
             </div>
         </div>
-        
-        <div class="control-card help-card">
-            <h2>Mathematically Tuned Presets</h2>
-            <p><strong>Preset Descriptions:</strong></p>
-            <ul>
-                <li><strong>P-Only</strong>: Fast response, steady-state error, some oscillation (Kp=0.3)</li>
-                <li><strong>PI</strong>: Good steady-state accuracy, moderate overshoot (Kp=0.2, Ki=0.015)</li>
-                <li><strong>Good</strong>: Well-balanced using Ziegler-Nichols, minimal overshoot (~2%)</li>
-                <li><strong>Overdamped</strong>: Very stable, slow response, no overshoot (ζ>1)</li>
-                <li><strong>Underdamped</strong>: Fast response, significant overshoot (~50%), oscillatory (ζ<0.7)</li>
-            </ul>
-            <p>Click the road to create wind disturbances and test robustness!</p>
         </div>
-    </div>
 
 </div>
 
