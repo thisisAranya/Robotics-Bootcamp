@@ -26,23 +26,21 @@ body {
   overflow-x: hidden; /* Prevent horizontal scrollbar */
 }
 
-/* --- Main Container Layout (Updated to CSS Grid) --- */
 .main-container {
-  display: grid; /* Use Grid for main layout control */
-  /* Define two columns: first takes available space, second is for controls */
-  grid-template-columns: 1fr minmax(400px, 550px); /* Controls column min 400px, max 550px */
-  gap: 32px; /* Gap between grid columns */
-  width: 95%; /* Maintain overall width */
-  max-width: 1800px;
-  margin: 0 auto; /* Center the main container */
-  align-items: flex-start; /* Align items to the top of their grid areas */
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 32px; /* Increased gap */
+  width: 95%; /* Slightly reduced width for spacing */
+  max-width: 1800px; /* Increased max width */
 }
 
 #simulation-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* flex-grow: 1 is no longer needed with grid, 1fr handles it */
+  flex-grow: 1;
 }
 
 h1 {
@@ -110,9 +108,9 @@ canvas#graphCanvas {
 .controls {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  /* Removed fixed width here, as grid-template-columns manages it */
-  flex-shrink: 0; /* Prevents it from shrinking below its content */
+  gap: 20px; /* Increased gap */
+  width: 400px; /* Slightly wider controls */
+  flex-shrink: 0;
 }
 
 .control-card {
@@ -236,18 +234,23 @@ button {
   background-color: #1976d2;
 }
 
-/* --- Adjusted styles for horizontal preset cards --- */
-.preset-and-help-group {
-    display: flex; /* Make this group a flex container */
-    flex-wrap: wrap; /* Allow items to wrap to the next line if space is limited */
-    gap: 20px; /* Gap between the cards */
-    /* No width needed, it will take the width of its parent (.controls) */
+.help-card p {
+  font-size: 15px; /* Slightly larger font */
+  line-height: 1.7; /* Improved line height */
+  margin: 0 0 12px 0; /* Increased margin */
 }
-
-.preset-and-help-group > .control-card {
-    /* Since there's only one card now, this style will simply make it take full available width. */
-    flex: 1 1 100%; /* Make the single card take full width */
-    min-width: 250px; /* Ensure a reasonable minimum width */
+.help-card strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.help-card ul {
+  padding-left: 24px; /* Increased padding */
+  margin: 0;
+  list-style-type: disc; /* Use disc bullets */
+}
+.help-card li {
+  margin-bottom: 10px; /* Increased margin */
+  color: #555; /* Darker gray */
 }
 
 .status-indicator {
