@@ -35,8 +35,8 @@ const buttons = {
   reset: document.getElementById("resetBtn"),
   presetP: document.getElementById("presetP"),
   presetPI: document.getElementById("presetPI"),
-  // Renamed presetUnder to presetPID as per new HTML
-  presetPID: document.getElementById("presetUnder") // Note: ID is still "presetUnder" in HTML
+  // Corrected ID to match the HTML for the PID button
+  presetPID: document.getElementById("presetPID") 
 };
 
 // --- Color Palette ---
@@ -56,7 +56,8 @@ const colors = {
 // --- Simulation & PID State ---
 let simulationState = { isRunning: false, animationFrameId: null, lastTimestamp: 0, history: [], maxHistory: 300, firstUpdate: true };
 let car = {};
-let pid = { kp: 0.1, ki: 0.008, kd: 0.8, integral: 0, lastCarY: 0 };
+// Updated initial PID values to match the new default slider values in index.html
+let pid = { kp: 0.4, ki: 0.001, kd: 0.5, integral: 0, lastCarY: 0 };
 let pathParams = { type: 'sine', scale: 1.0 }; // Path configuration
 
 // --- Initialization ---
@@ -228,7 +229,9 @@ function update(dt) {
 
   // Store history for plotting
   simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error });
-  if (simulationState.history.length > simulationState.maxHistory) simulationState.shift();
+  // Using shift() on an array to remove the first element is fine if it doesn't get too large.
+  // For very long histories, a circular buffer could be more performant, but for 300 points, this is perfectly adequate.
+  if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift(); 
 
   // Calculate windup percentage for monitoring
   const windupPercentage = Math.abs(pid.integral / maxIntegral) * 100;
@@ -286,8 +289,7 @@ function getLaneCenterY(x) {
       else if (phase < 0.75) return centerY - amplitude; // Bottom edge
       else return centerY - amplitude + (amplitude * 2 * (phase - 0.75) / 0.25); // Left edge (ascending)
 
-    // Removed figure8 and spiral cases as they are no longer in HTML
-    default:
+    default: // This will handle any unexpected values or serve as a fallback
       return centerY + amplitude * Math.sin(0.005 * x);
   }
 }
