@@ -90,6 +90,13 @@ canvas#graphCanvas {
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Subtle shadow */
 }
+
+.data-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .data-item span:first-child {
   font-weight: 500;
   color: #555; /* Darker gray */
