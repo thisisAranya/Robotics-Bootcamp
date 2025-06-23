@@ -136,10 +136,8 @@ function setupEventListeners() {
 
   // Mathematically calculated presets based on control theory
   buttons.presetP.onclick = () => setPreset(0.3, 0, 0);        // P-Only: Fast response, steady-state error
-  buttons.presetPI.onclick = () => setPreset(0.2, 0.015, 0);   // PI: Good steady-state, moderate overshoot
-  buttons.presetGood.onclick = () => setPreset(0.15, 0.01, 0.6); // Well-tuned: Balanced, minimal overshoot
-  buttons.presetOver.onclick = () => setPreset(0.08, 0.005, 1.2); // Overdamped: Very stable, slow response
-  buttons.presetUnder.onclick = () => setPreset(0.4, 0.01, 0.5); // Underdamped: Fast, oscillatory
+  buttons.presetPI.onclick = () => setPreset(0.2, 0, 0.015);   // PI: Good steady-state, moderate overshoot
+  buttons.presetUnder.onclick = () => setPreset(0.4, 0.5, 0.01); // Underdamped: Fast, oscillatory
 }
 
 function setPreset(kp, ki, kd) {
