@@ -26,21 +26,23 @@ body {
   overflow-x: hidden; /* Prevent horizontal scrollbar */
 }
 
+/* --- Main Container Layout (Updated to CSS Grid) --- */
 .main-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 32px; /* Increased gap */
-  width: 95%; /* Slightly reduced width for spacing */
-  max-width: 1800px; /* Increased max width */
+  display: grid; /* Use Grid for main layout control */
+  /* Define two columns: first takes available space, second is for controls */
+  grid-template-columns: 1fr minmax(400px, 550px); /* Controls column min 400px, max 550px */
+  gap: 32px; /* Gap between grid columns */
+  width: 95%; /* Maintain overall width */
+  max-width: 1800px;
+  margin: 0 auto; /* Center the main container */
+  align-items: flex-start; /* Align items to the top of their grid areas */
 }
 
 #simulation-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex-grow: 1;
+  /* flex-grow: 1 is no longer needed with grid, 1fr handles it */
 }
 
 h1 {
@@ -108,9 +110,9 @@ canvas#graphCanvas {
 .controls {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Increased gap */
-  width: 400px; /* Slightly wider controls */
-  flex-shrink: 0;
+  gap: 20px;
+  /* Removed fixed width here, as grid-template-columns manages it */
+  flex-shrink: 0; /* Prevents it from shrinking below its content */
 }
 
 .control-card {
@@ -232,6 +234,19 @@ button {
 }
 .presets-group button:hover {
   background-color: #1976d2;
+}
+
+/* --- New styles for horizontal preset cards --- */
+.preset-and-help-group {
+    display: flex; /* Make this group a flex container */
+    flex-wrap: wrap; /* Allow items to wrap to the next line if space is limited */
+    gap: 20px; /* Gap between the two cards */
+    /* No width needed, it will take the width of its parent (.controls) */
+}
+
+.preset-and-help-group > .control-card {
+    flex: 1 1 calc(50% - 10px); /* Each card tries to take 50% width minus half the gap */
+    min-width: 250px; /* Ensure cards don't become too narrow on smaller screens */
 }
 
 .help-card p {
