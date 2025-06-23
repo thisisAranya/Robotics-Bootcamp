@@ -183,74 +183,73 @@ function gameLoop(timestamp) {
 }
 
 function update(dt) {
-  // Reset car if off screen
+  // If car goes off screen, reset its position
   if (car.x > roadCanvas.width + car.width) {
     resetCar();
     return;
   }
 
+  // === Path & Error ===
   const centerlineY = getLaneCenterY(car.x);
   const error = car.y - centerlineY;
 
-  // --- PID TERMS ---
+  // === PID TERMS ===
 
   // 1. Proportional
   const pTerm = pid.kp * error;
 
-  // 2. Integral (with anti-windup clamp)
+  // 2. Integral with anti-windup
   pid.integral += error * dt;
   const maxIntegralContribution = 100;
-  const maxIntegral = Math.min(maxIntegralContribution / Math.max(pid.ki, 1e-6), 500);
+  const maxIntegral = Math.min(maxIntegralContribution / Math.max(pid.ki, 1e-6), 500); // anti-windup
   pid.integral = Math.max(-maxIntegral, Math.min(maxIntegral, pid.integral));
   const iTerm = pid.ki * pid.integral;
 
-  // 3. Derivative (on measurement to avoid kick)
+  // 3. Derivative on measurement (correct sign now)
   let dTerm = 0;
   if (!simulationState.firstUpdate) {
-    const processDerivative = -(car.y - pid.lastCarY) / dt;
-    dTerm = pid.kd * processDerivative;
+    const processDerivative = (car.y - pid.lastCarY) / dt;
+    dTerm = -pid.kd * processDerivative;  // ← Corrected sign
   } else {
     simulationState.firstUpdate = false;
   }
   pid.lastCarY = car.y;
 
-  // --- Total Correction ---
+  // === Total Correction ===
   const correction = pTerm + iTerm + dTerm;
 
-  // --- External Disturbance ---
+  // === Disturbance Handling ===
   if (Math.abs(car.disturbance) > 0.1) {
     car.y += car.disturbance * dt;
-    car.disturbance *= 0.95;
+    car.disturbance *= 0.95; // exponential decay
   }
 
-  // --- Steering ---
+  // === Steering Control ===
   const maxSteerAngle = Math.PI / 4;
   const baseSteeringSensitivity = 0.008;
-
-  // Optional: make sensitivity adapt to speed (comment if not needed)
   const steeringSensitivity = baseSteeringSensitivity * (60 / Math.max(car.velocity, 1));
-
   const desiredHeading = -correction * steeringSensitivity;
 
-  // Smooth turning (simulate steering actuator inertia)
-  const maxTurnRate = 0.05; // radians per frame
-  const headingDelta = desiredHeading - car.heading;
-  car.heading += Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDelta));
+  // Smooth heading change
+  const maxTurnRate = 0.05; // radians/frame
+  const headingChange = Math.max(-maxTurnRate, Math.min(maxTurnRate, desiredHeading - car.heading));
+  car.heading += headingChange;
 
-  // --- Car Position Update ---
+  // === Position Update ===
   car.x += car.velocity * Math.cos(car.heading);
   car.y += car.velocity * Math.sin(car.heading);
 
-  // --- History for Plotting ---
+  // === History for Plotting ===
   simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error });
   if (simulationState.history.length > simulationState.maxHistory) {
     simulationState.history.shift();
   }
 
-  // --- Windup Monitor ---
+  // === Windup Monitoring ===
   const windupPercent = Math.abs(pid.integral / maxIntegral) * 100;
   updateDataDisplays(error, pTerm, iTerm, dTerm, correction, windupPercent);
 }
+
 
 function updateDataDisplays(error, p, i, d, corr, windupPercent = 0) {
   dataDisplays.error.textContent = error.toFixed(2);
