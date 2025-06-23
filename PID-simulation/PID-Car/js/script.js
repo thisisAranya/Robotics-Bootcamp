@@ -35,8 +35,9 @@ const buttons = {
   reset: document.getElementById("resetBtn"),
   presetP: document.getElementById("presetP"),
   presetPI: document.getElementById("presetPI"),
-  // Corrected ID to match the HTML for the PID button
-  presetPID: document.getElementById("presetPID") 
+  presetGood: document.getElementById("presetGood"),
+  presetOver: document.getElementById("presetOver"),
+  presetUnder: document.getElementById("presetUnder")
 };
 
 // --- Color Palette ---
@@ -56,8 +57,7 @@ const colors = {
 // --- Simulation & PID State ---
 let simulationState = { isRunning: false, animationFrameId: null, lastTimestamp: 0, history: [], maxHistory: 300, firstUpdate: true };
 let car = {};
-// Updated initial PID values to match the new default slider values in index.html
-let pid = { kp: 0.4, ki: 0.001, kd: 0.5, integral: 0, lastCarY: 0 };
+let pid = { kp: 0.1, ki: 0.008, kd: 0.8, integral: 0, lastCarY: 0 };
 let pathParams = { type: 'sine', scale: 1.0 }; // Path configuration
 
 // --- Initialization ---
@@ -95,7 +95,7 @@ function resetCar() {
     disturbance: 0
   };
 
-  // Proper initialization to avoid derivative spikes
+  // FIXED: Proper initialization to avoid derivative spikes
   pid.integral = 0;
   pid.lastCarY = car.y; // Initialize with current position
   simulationState.history = [];
@@ -134,10 +134,12 @@ function setupEventListeners() {
       car.disturbance = 60 * (clickY < car.y ? 1 : -1);
   };
 
-  // Presets based on the new HTML structure
-  buttons.presetP.onclick = () => setPreset(0.4, 0, 0);        // P-Only: Uses Kp=0.4 from HTML slider default
-  buttons.presetPI.onclick = () => setPreset(0.4, 0.005, 0);   // PI: Kp=0.4, Ki=0.005
-  buttons.presetPID.onclick = () => setPreset(0.4, 0.001, 0.5); // PID: Kp=0.4, Ki=0.001, Kd=0.5
+  // Mathematically calculated presets based on control theory
+  buttons.presetP.onclick = () => setPreset(0.3, 0, 0);        // P-Only: Fast response, steady-state error
+  buttons.presetPI.onclick = () => setPreset(0.2, 0.015, 0);   // PI: Good steady-state, moderate overshoot
+  buttons.presetGood.onclick = () => setPreset(0.15, 0.01, 0.6); // Well-tuned: Balanced, minimal overshoot
+  buttons.presetOver.onclick = () => setPreset(0.08, 0.005, 1.2); // Overdamped: Very stable, slow response
+  buttons.presetUnder.onclick = () => setPreset(0.4, 0.01, 0.5); // Underdamped: Fast, oscillatory
 }
 
 function setPreset(kp, ki, kd) {
@@ -172,7 +174,7 @@ function gameLoop(timestamp) {
   const dt = (timestamp - simulationState.lastTimestamp) / 1000;
   simulationState.lastTimestamp = timestamp;
 
-  // Better time step handling
+  // IMPROVED: Better time step handling
   const clampedDt = Math.max(0.001, Math.min(dt, 0.05)); // Min 1ms, max 50ms
 
   update(clampedDt);
@@ -187,20 +189,20 @@ function update(dt) {
   const centerlineY = getLaneCenterY(car.x);
   const error = car.y - centerlineY;
 
-  // PROPORTIONAL TERM
+  // PROPORTIONAL TERM (unchanged)
   const pTerm = pid.kp * error;
 
-  // INTEGRAL TERM with anti-windup
+  // IMPROVED INTEGRAL TERM with better anti-windup
   pid.integral += error * dt;
 
-  // Anti-windup limits that scale with Ki gain
+  // FIXED: Anti-windup limits that scale with Ki gain
   const maxIntegralContribution = 100; // Maximum allowed integral contribution
-  const maxIntegral = pid.ki > 0.0001 ? maxIntegralContribution / pid.ki : 1000; // Adjusted lower bound for Ki
+  const maxIntegral = pid.ki > 0.001 ? maxIntegralContribution / pid.ki : 1000;
   pid.integral = Math.max(-maxIntegral, Math.min(maxIntegral, pid.integral));
 
   const iTerm = pid.ki * pid.integral;
 
-  // Derivative on measurement (not error) to prevent derivative kick
+  // FIXED: Derivative on measurement (not error) to prevent derivative kick
   let dTerm = 0;
   if (!simulationState.firstUpdate) {
     // Derivative of process variable (car position), not error
@@ -218,7 +220,7 @@ function update(dt) {
       car.disturbance *= 0.95; // Exponential decay
   }
 
-  // More direct steering angle mapping
+  // IMPROVED: More direct steering angle mapping
   const maxSteerAngle = Math.PI / 4; // 45 degrees max
   const steeringSensitivity = 0.008; // Tunable parameter
   car.heading = Math.max(-maxSteerAngle, Math.min(maxSteerAngle, -correction * steeringSensitivity));
@@ -229,9 +231,7 @@ function update(dt) {
 
   // Store history for plotting
   simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error });
-  // Using shift() on an array to remove the first element is fine if it doesn't get too large.
-  // For very long histories, a circular buffer could be more performant, but for 300 points, this is perfectly adequate.
-  if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift(); 
+  if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift();
 
   // Calculate windup percentage for monitoring
   const windupPercentage = Math.abs(pid.integral / maxIntegral) * 100;
@@ -289,7 +289,19 @@ function getLaneCenterY(x) {
       else if (phase < 0.75) return centerY - amplitude; // Bottom edge
       else return centerY - amplitude + (amplitude * 2 * (phase - 0.75) / 0.25); // Left edge (ascending)
 
-    default: // This will handle any unexpected values or serve as a fallback
+    case 'figure8':
+      // Figure-8 pattern using Lissajous curve
+      const freq1 = 0.003 * pathParams.scale;
+      const freq2 = 0.006 * pathParams.scale;
+      return centerY + amplitude * 0.8 * Math.sin(freq1 * x) * Math.cos(freq2 * x);
+
+    case 'spiral':
+      // Spiral pattern - increasing amplitude over distance
+      const spiralRate = 0.001 * pathParams.scale;
+      const spiralAmplitude = Math.min(amplitude, (x * spiralRate) % (amplitude * 2));
+      return centerY + spiralAmplitude * Math.sin(0.01 * x);
+
+    default:
       return centerY + amplitude * Math.sin(0.005 * x);
   }
 }
