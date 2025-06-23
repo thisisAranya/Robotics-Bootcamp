@@ -183,60 +183,73 @@ function gameLoop(timestamp) {
 }
 
 function update(dt) {
-  // If car goes off screen, reset its position
-  if (car.x > roadCanvas.width + car.width) resetCar();
+  // Reset car if off screen
+  if (car.x > roadCanvas.width + car.width) {
+    resetCar();
+    return;
+  }
 
   const centerlineY = getLaneCenterY(car.x);
   const error = car.y - centerlineY;
 
-  // PROPORTIONAL TERM (unchanged)
+  // --- PID TERMS ---
+
+  // 1. Proportional
   const pTerm = pid.kp * error;
 
-  // IMPROVED INTEGRAL TERM with better anti-windup
+  // 2. Integral (with anti-windup clamp)
   pid.integral += error * dt;
-
-  // FIXED: Anti-windup limits that scale with Ki gain
-  const maxIntegralContribution = 100; // Maximum allowed integral contribution
-  const maxIntegral = pid.ki > 0.001 ? maxIntegralContribution / pid.ki : 1000;
+  const maxIntegralContribution = 100;
+  const maxIntegral = Math.min(maxIntegralContribution / Math.max(pid.ki, 1e-6), 500);
   pid.integral = Math.max(-maxIntegral, Math.min(maxIntegral, pid.integral));
-
   const iTerm = pid.ki * pid.integral;
 
-  // FIXED: Derivative on measurement (not error) to prevent derivative kick
+  // 3. Derivative (on measurement to avoid kick)
   let dTerm = 0;
   if (!simulationState.firstUpdate) {
-    // Derivative of process variable (car position), not error
     const processDerivative = -(car.y - pid.lastCarY) / dt;
     dTerm = pid.kd * processDerivative;
+  } else {
+    simulationState.firstUpdate = false;
   }
-  simulationState.firstUpdate = false;
-  pid.lastCarY = car.y; // Store current position for next iteration
+  pid.lastCarY = car.y;
 
+  // --- Total Correction ---
   const correction = pTerm + iTerm + dTerm;
 
-  // Apply external disturbance (wind)
+  // --- External Disturbance ---
   if (Math.abs(car.disturbance) > 0.1) {
-      car.y += car.disturbance * dt;
-      car.disturbance *= 0.95; // Exponential decay
+    car.y += car.disturbance * dt;
+    car.disturbance *= 0.95;
   }
 
-  // IMPROVED: More direct steering angle mapping
-  const maxSteerAngle = Math.PI / 4; // 45 degrees max
-  const steeringSensitivity = 0.008; // Tunable parameter
-  car.heading = Math.max(-maxSteerAngle, Math.min(maxSteerAngle, -correction * steeringSensitivity));
+  // --- Steering ---
+  const maxSteerAngle = Math.PI / 4;
+  const baseSteeringSensitivity = 0.008;
 
-  // Update car position based on velocity and heading
+  // Optional: make sensitivity adapt to speed (comment if not needed)
+  const steeringSensitivity = baseSteeringSensitivity * (60 / Math.max(car.velocity, 1));
+
+  const desiredHeading = -correction * steeringSensitivity;
+
+  // Smooth turning (simulate steering actuator inertia)
+  const maxTurnRate = 0.05; // radians per frame
+  const headingDelta = desiredHeading - car.heading;
+  car.heading += Math.max(-maxTurnRate, Math.min(maxTurnRate, headingDelta));
+
+  // --- Car Position Update ---
   car.x += car.velocity * Math.cos(car.heading);
   car.y += car.velocity * Math.sin(car.heading);
 
-  // Store history for plotting
+  // --- History for Plotting ---
   simulationState.history.push({ p: pTerm, i: iTerm, d: dTerm, error: error });
-  if (simulationState.history.length > simulationState.maxHistory) simulationState.history.shift();
+  if (simulationState.history.length > simulationState.maxHistory) {
+    simulationState.history.shift();
+  }
 
-  // Calculate windup percentage for monitoring
-  const windupPercentage = Math.abs(pid.integral / maxIntegral) * 100;
-
-  updateDataDisplays(error, pTerm, iTerm, dTerm, correction, windupPercentage);
+  // --- Windup Monitor ---
+  const windupPercent = Math.abs(pid.integral / maxIntegral) * 100;
+  updateDataDisplays(error, pTerm, iTerm, dTerm, correction, windupPercent);
 }
 
 function updateDataDisplays(error, p, i, d, corr, windupPercent = 0) {
